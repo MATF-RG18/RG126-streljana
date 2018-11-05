@@ -1,5 +1,5 @@
-# RG041-shooting-range
-shooting range
+# RG126-streljana
+streljana
 
 Simulacija pucanja u metu.
 
