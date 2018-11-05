@@ -7,8 +7,8 @@ Simulacija pucanja u metu.
 Mora biti instaliran bilo koj C kompajler i OpenGL/GLUT biblioteka.
 
 ```shell
-git clone https://github.com/MATF-RG17/RG041-shooting-range
-cd MATF-RG17/RG041-shooting-range
+git clone https://github.com/MATF-RG18/RG126-streljana.git
+cd RG126-streljana
 make
 ./streljana
 ```
