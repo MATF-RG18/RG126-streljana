@@ -7,6 +7,7 @@
 #define TIMER_ID 0
 #define TIMER_INTERVAL 20
 #define NUMBER_OF_DOTS 10000
+#define NUMBER_OF_SHOTS 10
 
 /*rastojanje od nisana do mete*/
 #define DISTANCE_TAGET -64
@@ -23,8 +24,20 @@ void textFunc(const char* text, double x, double y);
 /*metod koji crta nisan*/
 static void  draw_gunsight(void);
 
+/*metod koji crta metu*/
+static void draw_target(void);
+
+/*metod koji crta metak*/
+static void draw_bullet(void);
+
 /*flag za pogled*/
 static int view_flag=0;
+
+/*flag za zum*/
+static double zoom=0;
+
+/*osvetljenje*/
+void lighting(void);
 
 /* Vreme proteklo od pocetka simulacije. */
 static int animation_ongoing;
@@ -39,6 +52,11 @@ static double widthW;
 /*globalne promenjive za polozaj nisana u ekranu*/
 GLdouble gunX = 0;
 GLdouble gunY = 0;
+
+/*10 pokusaja*/
+double shotsX[NUMBER_OF_SHOTS];
+double shotsY[NUMBER_OF_SHOTS];
+int current_shot = 0;
 
 /*flag za opaljeni metak*/
 static int fired_flag=0;
@@ -80,7 +98,6 @@ int main(int argc, char *argv[])
 	/* Obavlja se OpenGL inicijalizacija. */
 	glClearColor(0.75f,0.75f,0.75f, 0);
 	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_NORMALIZE);
 
 	/* Ulazi se u glavnu petlju. */
 	glutMainLoop();
@@ -99,16 +116,18 @@ static void on_motion(int x, int y){
 static void on_mouse(int button, int state, int x, int y){
     switch(button) {
         case GLUT_LEFT_BUTTON:
-			glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
-			animation_ongoing = 1;
-			
-			/*ispaljeni metak -> metak ne prati vise nisan*/
-			fired_flag=1;
-			buletX = gunX;
-			buletY = gunY;
-			
-			/* Forsira se ponovno iscrtavanje prozora. */
-            glutPostRedisplay();
+            if(zoom == 0) {
+                glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
+                animation_ongoing = 1;
+                
+                /*ispaljeni metak -> metak ne prati vise nisan*/
+                fired_flag=1;
+                buletX = gunX;
+                buletY = gunY;
+                
+                /* Forsira se ponovno iscrtavanje prozora. */
+                glutPostRedisplay();
+            }
     }   
 }
 
@@ -135,16 +154,18 @@ static void on_keyboard(unsigned char key, int x, int y) {
 			break;
 		case 'g':
 			/* klik na malo g-> ispaljen metak*/
-			if (!animation_ongoing) {
-				glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
-				animation_ongoing = 1;
-				
-				fired_flag=1;
-				buletX = gunX;
-				buletY = gunY;
-				
-				glutPostRedisplay();
-			}
+            if(zoom == 0) {
+                if (!animation_ongoing) {
+                    glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
+                    animation_ongoing = 1;
+                    
+                    fired_flag=1;
+                    buletX = gunX;
+                    buletY = gunY;
+                    
+                    glutPostRedisplay();
+                }
+            }
 			break;
 		case 'P':
 			/* Privremeno se zaustavlja simulacija. */
@@ -170,9 +191,14 @@ static void on_keyboard(unsigned char key, int x, int y) {
 			break;
 		
         case 'z':
-        	/* Prati se mis po ekranu */
-            crosshairX = x;
-            crosshairY = y;
+            if(zoom < 70)
+                zoom += 1.5;
+            /* Forsira se ponovno iscrtavanje prozora. */
+            glutPostRedisplay();
+            break;
+        case 'Z':
+            if(zoom > 0)
+                zoom -= 1.5;
             /* Forsira se ponovno iscrtavanje prozora. */
             glutPostRedisplay();
             break;
@@ -226,13 +252,18 @@ static void on_timer(int value) {
 	} else {
 		/* Zaustavlja se metak kod mete */
         animation_ongoing = 0;
+        animation_parameter = 0;
+                    
+        shotsX[current_shot] = gunX;
+        shotsY[current_shot] = gunY;
         
-
+        current_shot ++;
+        
         /*izracunavanje pogodtka*/
-        //centar je (0;0.14)
+        //centar je (0;0;14)
         double radius= sqrt((buletX)*(buletX)+(buletY-0.14)*(buletY-0.14));
         //rastojanje izmedju krugova je 0.3, a ide od 0 do 3
-        int hit =11 - ceil((radius)/0.3);
+        int hit = 11 - ceil((radius)/0.3);
         sprintf(hitnumber, "%d", hit);
     }
 
@@ -249,115 +280,22 @@ static void on_display(void) {
 	glLoadIdentity();
 	
 	/*pozicija kamere*/
-	if(view_flag == 0){
-    	/*kamera za nisanjenje */
-		gluLookAt(
-			0, 2, 14,
-			0, 0, 0,
-			0, 1, 0
-			);
-	}else {
-		/* kamera kad je zumiranje ukljuceno */
-		//TODO popraviti
-		gluLookAt(
-			0, 4, 10,
-			0, 0, 0,
-			0, 1, 0
-			);
-	}
+    gluLookAt(
+        0, 0, 14 - zoom,
+        0, 0, -100,
+        0, 1, 0
+        );
 	
+    /*postavljanje osvetljenja*/
+	lighting();
+
+    /*crtanje mete*/
+    draw_target();
 	
-	glEnable(GL_LIGHTING);
-	glEnable(GL_LIGHT0);
-	/*ukljucivanje svetlosti*/
-	GLfloat light_position[] = {1, 1, 1};
-	GLfloat light_ambient[] = {1, 1, 1, 1};
-	GLfloat light_diffuse[] = {1, 1, 1, 1};
-
-    glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
-    glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-
-
-	/* krugovi na meti i okolina mete*/
-	glPushMatrix();
-			float r = 0.3; int j;
-            int i;
-            glDisable(GL_LIGHT0);
-            glDisable(GL_LIGHTING);
-
-			for (j = 0; j < 10; j++) {
-                /*boja linija mete*/
-                glColor3f(0,0,0);
-            
-            /*debljina krugova mete*/
-            glLineWidth(3);
-            
-            /* krugovi na meti */
-    		glBegin(GL_LINE_STRIP);
-                double angle1 = 0.0;
-                float angle = 2 * M_PI / NUMBER_OF_DOTS;
-				for (i = 0; i < NUMBER_OF_DOTS; i++) {
-					glVertex3f(r * cos(angle1), r * sin(angle1), DISTANCE_TAGET );
-                    angle1 += angle;
-				}
-		    glEnd();
-				r += 0.3;
-
-			}
-            glEnable(GL_LIGHT0);
-            glEnable(GL_LIGHTING);
-            
-            glTranslatef(-5, -10, 0);
-            glDisable(GL_LIGHT0);
-            glDisable(GL_LIGHTING);
-            
-            /*boja manjeg trapeza*/
-            glColor3f(1, 1, 1);
-            /* koordinate temena manjeg trapeza*/
-            glBegin(GL_QUADS);
-	            glVertex3f(1.9, 6.9, DISTANCE_TAGET);
-                glVertex3f(1.9, 13.1, DISTANCE_TAGET);
-                glVertex3f(8.1, 13.1,DISTANCE_TAGET);
-                glVertex3f(8.1, 6.9, DISTANCE_TAGET);
-            glEnd();
-            
-            
-            /*boja  veceg trapeza*/
-            glColor3f(0.8f, 0.52f, 0.25f);
-            /* koordinate temena veceg trapeza*/
-            glBegin(GL_QUADS);
-                glVertex3f(-4.5, 5, DISTANCE_TAGET -0.1);
-                glVertex3f(-4.5, 15, DISTANCE_TAGET -0.1);
-                glVertex3f(14, 15, DISTANCE_TAGET -0.1);
-                glVertex3f(14, 5, DISTANCE_TAGET -0.1);
-
-    glEnd();
-	glPopMatrix();
-    glEnable(GL_LIGHT0);
-    glEnable(GL_LIGHTING);
-    
-    
     /*crtanje "metka"*/
-    glDisable(GL_LIGHT0);
-    glDisable(GL_LIGHTING);
-    glPushMatrix();
-    	if(fired_flag==0){
-    		/*pozicija ne ispaljenog metka*/
-    		glTranslatef(0 + gunX, -1 + gunY, 4-animation_parameter);
-    	}
-    	else{
- 	   		/*pozicija ispaljenog metka*/
-    		glTranslatef(0 + buletX, -1 + buletY, 4-animation_parameter);
-    	}
-        glColor3f(1, 0, 0);
-        glutSolidSphere(0.1, 40, 40);
-    glPopMatrix();
-    glEnable(GL_LIGHT0);
-    glEnable(GL_LIGHTING);
+    draw_bullet();
     
     /*crtanje nisana*/
-    glTranslatef(gunX, gunY, 0);
     draw_gunsight();
 	
 	/*stampanje na ekran*/
@@ -371,7 +309,7 @@ static void on_display(void) {
 /* crtanje nisana */
 static void  draw_gunsight(void){
 	glPushMatrix();
-		
+		glTranslatef(gunX, gunY, 0);
 		/*zelena boja materijala*/
 		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, (float[4]){ 0.0215f, 0.1745f, 0.0215f, 1.0f });
 	  	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, (float[4]){0.4f, 0.5f, 0.4f, 1.0f });
@@ -453,3 +391,119 @@ void textFunc(const char* text, double x, double y){
     glPopMatrix();
 }
 
+void lighting() {
+    
+	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT0);
+	/*ukljucivanje svetlosti*/
+	GLfloat light_position[] = {1, 1, 1};
+	GLfloat light_ambient[] = {1, 1, 1, 1};
+	GLfloat light_diffuse[] = {1, 1, 1, 1};
+
+    glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
+    glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+}
+
+
+static void draw_target(void) {
+    
+	glPushMatrix();
+			float r = 0.3; 
+            int j;
+            int i;
+            glDisable(GL_LIGHT0);
+            glDisable(GL_LIGHTING);
+
+			for (j = 0; j < 10; j++) {
+                /*boja linija mete*/
+                glColor3f(0,0,0);
+                
+                /*debljina krugova mete*/
+                glLineWidth(1);
+                
+                /* krugovi na meti */
+                glBegin(GL_LINE_STRIP);
+                    double angle1 = 0.0;
+                    float angle = 2 * M_PI / NUMBER_OF_DOTS;
+                    for (i = 0; i < NUMBER_OF_DOTS; i++) {
+                        glVertex3f(r * cos(angle1), r * sin(angle1), DISTANCE_TAGET );
+                        angle1 += angle;
+                    }
+                glEnd();
+                    r += 0.3;
+
+			}
+            glEnable(GL_LIGHT0);
+            glEnable(GL_LIGHTING);
+            
+            glTranslatef(-5, -10, 0);
+            glDisable(GL_LIGHT0);
+            glDisable(GL_LIGHTING);
+            
+            /*boja manjeg trapeza*/
+            glColor3f(1, 1, 1);
+            /* koordinate temena manjeg trapeza*/
+            glBegin(GL_QUADS);
+	            glVertex3f(1.9, 6.9, DISTANCE_TAGET);
+                glVertex3f(1.9, 13.1, DISTANCE_TAGET);
+                glVertex3f(8.1, 13.1,DISTANCE_TAGET);
+                glVertex3f(8.1, 6.9, DISTANCE_TAGET);
+            glEnd();
+            
+            
+            /*boja  veceg trapeza*/
+            glColor3f(0.8f, 0.52f, 0.25f);
+            /* koordinate temena veceg trapeza*/
+            glBegin(GL_QUADS);
+                glVertex3f(-4.5, 5, DISTANCE_TAGET -0.1);
+                glVertex3f(-4.5, 15, DISTANCE_TAGET -0.1);
+                glVertex3f(14, 15, DISTANCE_TAGET -0.1);
+                glVertex3f(14, 5, DISTANCE_TAGET -0.1);
+            glEnd();
+            
+            glEnable(GL_LIGHT0);
+            glEnable(GL_LIGHTING);
+            
+    glPopMatrix();
+    
+    glDisable(GL_LIGHT0);
+    glDisable(GL_LIGHTING);
+    
+            /*ipucani meci*/
+                    
+                    glColor3f(1, 0, 0);
+                    for(i = 0; i < current_shot; i++)
+                    {
+    glPushMatrix();
+                        glTranslatef(shotsX[i], shotsY[i], DISTANCE_TAGET + 0.1);
+                        glutSolidSphere(0.04, 40, 40);
+                        printf("%d - %lf - %lf\n", i, shotsX[i], shotsY[i]);
+    glPopMatrix();
+                    }
+                            
+    
+    glEnable(GL_LIGHT0);
+    glEnable(GL_LIGHTING);
+}
+
+static void draw_bullet(void) {
+    
+    glDisable(GL_LIGHT0);
+    glDisable(GL_LIGHTING);
+    glPushMatrix();
+    	if(fired_flag==0){
+    		/*pozicija ne ispaljenog metka*/
+    		glTranslatef(0 + gunX, gunY, 4-animation_parameter);
+    	}
+    	else{
+ 	   		/*pozicija ispaljenog metka*/
+    		glTranslatef(0 + buletX, buletY, 4-animation_parameter);
+    	}
+        glColor3f(1, 0, 0);
+        glutSolidSphere(0.02, 40, 40);
+    glPopMatrix();
+    glEnable(GL_LIGHT0);
+    glEnable(GL_LIGHTING);
+    
+}

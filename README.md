@@ -26,6 +26,7 @@ make
  `r` | novi metak 
   `q`  | nakrivljeno levo 
  `e`  | nakrivljeno desno
+  `z`  | zum
  `Esc` | Exit 
  
 Ako je nakrivljeno ka jednoj strani stisnuti krivljenje na suprotnu stranu da bi se vratilo u normalu.
@@ -33,4 +34,4 @@ Ako je nakrivljeno ka jednoj strani stisnuti krivljenje na suprotnu stranu da bi
 
 # wiki strane
 
-https://github.com/MATF-RG18/RG126-streljana/wiki/Izvestaj-1
+https://github.com/MATF-RG18/RG126-streljana/wiki/Izvestaj-2
