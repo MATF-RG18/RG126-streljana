@@ -468,7 +468,7 @@ static void draw_target(void) {
         glPushMatrix();
             glTranslatef(shotsX[i], shotsY[i], DISTANCE_TAGET + 0.1);
             glutSolidSphere(0.04, 40, 40);
-            printf("%d - %lf - %lf\n", i, shotsX[i], shotsY[i]);
+            //printf("%d - %lf - %lf\n", i, shotsX[i], shotsY[i]);
         glPopMatrix();
     }
                             
