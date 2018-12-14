@@ -30,9 +30,6 @@ static void draw_target(void);
 /*metod koji crta metak*/
 static void draw_bullet(void);
 
-/*flag za pogled*/
-static int view_flag=0;
-
 /*flag za zum*/
 static double zoom=0;
 
@@ -66,7 +63,7 @@ GLdouble buletX = 0;
 GLdouble buletY = 0;
 
 /*ispis pogotka*/
-static char hitnumber[2];
+static char hitnumber[2][NUMBER_OF_SHOTS];
 
 /*ugao za rotaciju nisana*/
 GLdouble gun_lean = 0;
@@ -116,7 +113,7 @@ static void on_motion(int x, int y){
 static void on_mouse(int button, int state, int x, int y){
     switch(button) {
         case GLUT_LEFT_BUTTON:
-            if(zoom == 0) {
+            if(zoom == 0 && current_shot <= 10) {
                 glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
                 animation_ongoing = 1;
                 
@@ -154,7 +151,7 @@ static void on_keyboard(unsigned char key, int x, int y) {
 			break;
 		case 'g':
 			/* klik na malo g-> ispaljen metak*/
-            if(zoom == 0) {
+            if(zoom == 0 && current_shot <= 9) {
                 if (!animation_ongoing) {
                     glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
                     animation_ongoing = 1;
@@ -177,28 +174,19 @@ static void on_keyboard(unsigned char key, int x, int y) {
 			animation_ongoing = 0;
 			fired_flag=0;
 			break;
-		case 'p':
-			/*menjanje pogleda*/
-			//TODO zum kamere
-			/*kad je 1 zum na metu*/
-			if(view_flag == 0)
-				view_flag=1;
-			else
-				view_flag=0;
-			
-			/* Forsira se ponovno iscrtavanje prozora. */
-			glutPostRedisplay();
-			break;
-		
         case 'z':
-            if(zoom < 70)
-                zoom += 1.5;
+            if(zoom == 70)
+                zoom = 0;
+            else if(zoom == 0)
+                zoom = 70;
             /* Forsira se ponovno iscrtavanje prozora. */
             glutPostRedisplay();
             break;
         case 'Z':
-            if(zoom > 0)
-                zoom -= 1.5;
+            if(zoom == 70)
+                zoom = 0;
+            else if(zoom == 0)
+                zoom = 70;
             /* Forsira se ponovno iscrtavanje prozora. */
             glutPostRedisplay();
             break;
@@ -243,7 +231,7 @@ static void on_timer(int value) {
 		return;
 	
 	/* Azurira se vreme simulacije. */
-    animation_parameter += 0.2;
+    animation_parameter += 10;
     /* Forsira se ponovno iscrtavanje prozora. */
 	glutPostRedisplay();
 
@@ -257,14 +245,14 @@ static void on_timer(int value) {
         shotsX[current_shot] = gunX;
         shotsY[current_shot] = gunY;
         
-        current_shot ++;
         
         /*izracunavanje pogodtka*/
         //centar je (0;0;14)
         double radius= sqrt((buletX)*(buletX)+(buletY-0.14)*(buletY-0.14));
         //rastojanje izmedju krugova je 0.3, a ide od 0 do 3
         int hit = 11 - ceil((radius)/0.3);
-        sprintf(hitnumber, "%d", hit);
+        sprintf(hitnumber[current_shot], "%d. %d", current_shot + 1, hit);
+        current_shot ++;
     }
 
 }
@@ -300,8 +288,10 @@ static void on_display(void) {
 	
 	/*stampanje na ekran*/
 	textFunc("Shoting Range", 150, 550);
-	textFunc(hitnumber, 100, 100);
-
+    for(int i = 0; i < current_shot; i++){
+        textFunc(hitnumber[i], 550, 550 - i * 40);
+	}
+	
 	/* Postavlja se nova slika u prozor. */
 	glutSwapBuffers();
 }
@@ -472,15 +462,15 @@ static void draw_target(void) {
     
             /*ipucani meci*/
                     
-                    glColor3f(1, 0, 0);
-                    for(i = 0; i < current_shot; i++)
-                    {
-    glPushMatrix();
-                        glTranslatef(shotsX[i], shotsY[i], DISTANCE_TAGET + 0.1);
-                        glutSolidSphere(0.04, 40, 40);
-                        printf("%d - %lf - %lf\n", i, shotsX[i], shotsY[i]);
-    glPopMatrix();
-                    }
+    glColor3f(1, 0, 0);
+    for(i = 0; i < current_shot; i++)
+    {
+        glPushMatrix();
+            glTranslatef(shotsX[i], shotsY[i], DISTANCE_TAGET + 0.1);
+            glutSolidSphere(0.04, 40, 40);
+            printf("%d - %lf - %lf\n", i, shotsX[i], shotsY[i]);
+        glPopMatrix();
+    }
                             
     
     glEnable(GL_LIGHT0);

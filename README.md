@@ -34,4 +34,4 @@ Ako je nakrivljeno ka jednoj strani stisnuti krivljenje na suprotnu stranu da bi
 
 # wiki strane
 
-https://github.com/MATF-RG18/RG126-streljana/wiki/Izvestaj-2
+https://github.com/MATF-RG18/RG126-streljana/wiki/Izvestaj-3
