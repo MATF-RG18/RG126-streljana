@@ -23,7 +23,7 @@ make
  `a`  | pomeranje levo 
  `s`  | pomeranje  dole 
  `d`  | pomeranje  desno
- `r` | novi metak 
+ `r` | restart , tj novih 10 metaka
   `q`  | nakrivljeno levo 
  `e`  | nakrivljeno desno
   `z`  | zum
@@ -33,5 +33,7 @@ Ako je nakrivljeno ka jednoj strani stisnuti krivljenje na suprotnu stranu da bi
 
 
 # wiki strane
+https://github.com/MATF-RG18/RG126-streljana/wiki
 
-https://github.com/MATF-RG18/RG126-streljana/wiki/Izvestaj-3
+Najnoviji izvestaj
+https://github.com/MATF-RG18/RG126-streljana/wiki/Izvestaj-4

@@ -12,6 +12,9 @@
 /*rastojanje od nisana do mete*/
 #define DISTANCE_TAGET -64
 
+/*duzina poruke za kraj*/
+#define MSG_LEN 50
+
 /* Deklaracije callback funkcija. */
 static void on_display(void);
 static void on_keyboard(unsigned char key, int x, int y);
@@ -51,9 +54,14 @@ GLdouble gunX = 0;
 GLdouble gunY = 0;
 
 /*10 pokusaja*/
-double shotsX[NUMBER_OF_SHOTS];
-double shotsY[NUMBER_OF_SHOTS];
+double static shotsX[NUMBER_OF_SHOTS];
+double static shotsY[NUMBER_OF_SHOTS];
 int current_shot = 0;
+
+/*suma pogodaka od 100*/
+int total =0;
+/*poruka za kraj*/
+static char EndMsg[MSG_LEN];
 
 /*flag za opaljeni metak*/
 static int fired_flag=0;
@@ -113,17 +121,19 @@ static void on_motion(int x, int y){
 static void on_mouse(int button, int state, int x, int y){
     switch(button) {
         case GLUT_LEFT_BUTTON:
-            if(zoom == 0 && current_shot <= 10) {
-                glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
-                animation_ongoing = 1;
-                
-                /*ispaljeni metak -> metak ne prati vise nisan*/
-                fired_flag=1;
-                buletX = gunX;
-                buletY = gunY;
-                
-                /* Forsira se ponovno iscrtavanje prozora. */
-                glutPostRedisplay();
+            if(zoom == 0 && current_shot <= 9) {
+                if(!animation_ongoing) {
+                    glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
+                    animation_ongoing = 1;
+                    
+                    /*ispaljeni metak -> metak ne prati vise nisan*/
+                    fired_flag=1;
+                    buletX = gunX;
+                    buletY = gunY;
+                    
+                    /* Forsira se ponovno iscrtavanje prozora. */
+                    glutPostRedisplay();
+                }
             }
     }   
 }
@@ -173,15 +183,11 @@ static void on_keyboard(unsigned char key, int x, int y) {
 			animation_parameter = 0;
 			animation_ongoing = 0;
 			fired_flag=0;
+            current_shot = 0;
+            total =0;
+            glutPostRedisplay();
 			break;
         case 'z':
-            if(zoom == 70)
-                zoom = 0;
-            else if(zoom == 0)
-                zoom = 70;
-            /* Forsira se ponovno iscrtavanje prozora. */
-            glutPostRedisplay();
-            break;
         case 'Z':
             if(zoom == 70)
                 zoom = 0;
@@ -231,7 +237,7 @@ static void on_timer(int value) {
 		return;
 	
 	/* Azurira se vreme simulacije. */
-    animation_parameter += 10;
+    animation_parameter += 20;
     /* Forsira se ponovno iscrtavanje prozora. */
 	glutPostRedisplay();
 
@@ -245,14 +251,23 @@ static void on_timer(int value) {
         shotsX[current_shot] = gunX;
         shotsY[current_shot] = gunY;
         
+        fired_flag = 0;
         
         /*izracunavanje pogodtka*/
+        //TODO prepraviti celo izracunavanje
         //centar je (0;0;14)
-        double radius= sqrt((buletX)*(buletX)+(buletY-0.14)*(buletY-0.14));
+        double radius= sqrt((buletX)*(buletX)+(buletY-0.01)*(buletY-0.01));
         //rastojanje izmedju krugova je 0.3, a ide od 0 do 3
         int hit = 11 - ceil((radius)/0.3);
         sprintf(hitnumber[current_shot], "%d. %d", current_shot + 1, hit);
+        
+        total +=hit;
         current_shot ++;
+        
+        if (current_shot >= 10){
+        	sprintf(EndMsg, "Kraj! Rezultat: %d/100   Za novu igru stisni r", total);
+        	printf("%d /100\n",total);
+        }
     }
 
 }
@@ -269,7 +284,7 @@ static void on_display(void) {
 	
 	/*pozicija kamere*/
     gluLookAt(
-        0, 0, 14 - zoom,
+        0, 1 - zoom/70, 14 - zoom,
         0, 0, -100,
         0, 1, 0
         );
@@ -281,7 +296,8 @@ static void on_display(void) {
     draw_target();
 	
     /*crtanje "metka"*/
-    draw_bullet();
+    if(fired_flag==1)
+        draw_bullet();
     
     /*crtanje nisana*/
     draw_gunsight();
@@ -292,6 +308,10 @@ static void on_display(void) {
         textFunc(hitnumber[i], 550, 550 - i * 40);
 	}
 	
+	if (current_shot >= 10){
+		textFunc(EndMsg, 100, 400);
+	}
+
 	/* Postavlja se nova slika u prozor. */
 	glutSwapBuffers();
 }
@@ -481,18 +501,14 @@ static void draw_bullet(void) {
     
     glDisable(GL_LIGHT0);
     glDisable(GL_LIGHTING);
+    
     glPushMatrix();
-    	if(fired_flag==0){
-    		/*pozicija ne ispaljenog metka*/
-    		glTranslatef(0 + gunX, gunY, 4-animation_parameter);
-    	}
-    	else{
- 	   		/*pozicija ispaljenog metka*/
-    		glTranslatef(0 + buletX, buletY, 4-animation_parameter);
-    	}
+        /*pozicija metka*/
+        glTranslatef(0 + buletX, buletY - 1, 4-animation_parameter);
         glColor3f(1, 0, 0);
         glutSolidSphere(0.02, 40, 40);
     glPopMatrix();
+    
     glEnable(GL_LIGHT0);
     glEnable(GL_LIGHTING);
     
